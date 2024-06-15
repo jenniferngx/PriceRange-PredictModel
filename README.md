@@ -1,3 +1,5 @@
+# **Predictive Model for Mobile Phone Price Range**
+
 Our main goal is to build a classification model that most accurately predicts the price range of mobile phones. We do so by using phone_train to train our classification models, choosing the model with highest accuracy via cross validation, and applying the final model to the test set  
 
 Given that our response variable is categorical with more than 2 levels
