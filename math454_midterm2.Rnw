@@ -1,0 +1,685 @@
+% File SDSS2020_SampleExtendedAbstract.tex
+\documentclass[10pt]{article}
+\usepackage[margin = 1in]{geometry}
+
+%\usepackage{sdss2020} % Uses Times Roman font (either newtx or times package)
+\usepackage{url}
+\usepackage{latexsym}
+\usepackage{amsmath, amsthm, amsfonts}
+\usepackage{algorithm, algorithmic}  
+\usepackage{graphicx,setspace}
+\usepackage{natbib}
+\usepackage{indentfirst}
+\setlength{\parskip}{8pt}
+
+\title{MATH 454 (Spring 2024) Midterm 2 First Draft}
+
+\author{
+  Jennifer Nguyen Do Ha\\
+  {\tt tnguyendoha@colgate.edu}}
+  
+\date{}
+
+\begin{document}
+\SweaveOpts{concordance=TRUE}
+\maketitle
+
+\section{Introduction}
+
+The dataset phone\_train presents the price range for 1600 mobile phones and measurements for 20 different features. Notably, 7 out of these 20 predictors are discrete variables, including blue, dual\_sim, four\_g, n\_cores, three\_g, touch\_screen, wifi. These 20 features are the predictors for the response of interest: the price range of each mobile phone, which is a categorical variable coded as 0, 1, 2, 3. This is the dataset we will be fitting our classification models on.The dataset phone\_test\_X includes measurements for all 20 predictors without the response for the remaining 400 observations. We will be using our final model to predict the price range for these 400 mobile phones. 
+
+Our main goal is to choose a classification model that most accurately predicts the price range of mobile phones. We will do so by using phone\_train to train the classification models and compute their respective average prediction accuracies. Once the classification model with the highest prediction accuracy is chosen, we will train this model on the entire training dataset, then apply the final model to phone\_test\_X to generate predictions for price ranges. Given that our response variable is categorical with more than 2 levels and our predictors are a mix of binary and continuous predictors, we will consider using classification models like Multinomial Logistic Regression, LDA, QDA, and Naive Bayes.
+
+The rest of this paper will be organized into 4 parts. Part II will present the mathematics of the our methods, part III will present our modeling results, and part IV will discuss our results. An appendix including our R code will also be provided at the end of the paper.
+
+
+\section{Methods}
+
+\subsection{Multinomial Logistic Regression}
+Multinomial logistic regression is a classification method that generalizes logistic regression to problems with more than two possible outcomes. The model is given by the following equation:
+
+\begin{equation}
+    p_k = Pr(Y=k) = 
+    \begin{cases} \frac{e^{\mathbf{x}^T \beta_k}}{1+\sum_{\ell=1}^{K-1} e^{\mathbf{x}^T \beta_{\ell}}} & \text{for } k \leq K - 1 \\
+\frac{1}{1+\sum_{\ell=1}^{K-1} e^{\mathbf{x}^T \beta_{\ell}}} & \text{for } k = K
+  \end{cases},
+\end{equation}
+
+where $Y$ is the response variable with possible categories $1, 2, \ldots, K$.
+
+$x$ is the vector of predictors $x = (1 x_1 \ldots x_p)^T$.
+
+$\beta_k$ is the vector of coefficients to be estimated for category $k$. Each vector $\beta_k$ is estimated using gradient-based optimization. 
+
+After estimating $p_1, ..., p_K$, prediction on Y is based on majority vote across all K categories
+$$
+  \hat{Y} = arg max_k \hat{p_k}
+$$
+
+
+\subsection{Linear Discriminant Analysis (LDA)}
+
+LDA assumes $\vec{X}|Y=k$ follows a multivariate Gaussian distribution. The LDA model is as follows:
+\begin{equation}
+X|Y=1 \sim N_p(\mu_1, \Sigma) 
+\end{equation}
+
+\begin{equation}
+X|Y=0 \sim N_p(\mu_0, \Sigma)
+\end{equation}
+
+\begin{equation}
+Y \sim Bernoulli(p)
+\end{equation}
+
+The parameters are: p (for proportions of 1's); $\mu_1, \mu_0$ (for the column means of data matrix in each class); and $\Sigma$ (for the pooled sample covariance from both classes). Given the observed data ${(x^{(i)},y_i)}_{i=1}^n$, these parameters can be estimated using maximum likelihood as follows:
+\begin{equation}
+\hat{p}=\frac{n_1}{n_1+n_0}
+\end{equation}
+
+\begin{equation}
+\hat{\mu_k}=\frac{\sum_{i:y_i=k} x^{(i)}}{n_k}
+\end{equation}
+
+\begin{equation}
+\hat{\Sigma}_k=\frac{\sum_{i:y_i=k} (x^{(i)}-\hat{\mu}_k)(x^{(i)}-\hat{\mu}_k)^T}{n_k-1}; 
+\hat{\Sigma}=\frac{(n_1-1)\hat{\Sigma}_1 + (n_0-1)\hat{\Sigma}_0}{n_1+n_0}
+\end{equation}
+
+
+The linear decision boundary for LDA is: Given a new data point $x^*$, predict $Y^*=1$ if:
+\begin{equation}
+  w^T x^* + b \geq 0 ,
+\end{equation}
+where
+$$
+  w^T = (\hat{\mu_1}-\hat{\mu_0}^T\hat{\Sigma^{-1}})
+$$
+$$
+  b = ln(\frac{\hat{p}}{1-\hat{p}}) - \frac{1}{2}(\hat{\mu_1}^T \hat{\Sigma^{-1}}\hat{\mu_1} - \hat{\mu_0}^T \hat{\Sigma^{-1}}\hat{\mu_0})
+$$
+
+\subsection{Quadratic Discriminant Analysis (QDA)}
+
+QDA assumes $\vec{X}|Y=k$ follows a multivariate Gaussian distribution. The QDA model is as follows:
+\begin{equation}
+X|Y=1 \sim N_p(\mu_1, \Sigma_1) 
+\end{equation}
+
+\begin{equation}
+X|Y=0 \sim N_p(\mu_0, \Sigma_0)
+\end{equation}
+
+\begin{equation}
+Y \sim Bernoulli(p)
+\end{equation}
+
+The parameters are: p (for proportions of 1's); $\mu_1, \mu_0$ (for the column means of data matrix in each class); and $\Sigma_1, \Sigma_0$ (for the covariance matrix in multivariate Gaussian). These parameters can be estimated using maximum likelihood as follows:
+
+\begin{equation}
+\hat{p}=\frac{n_1}{n_1+n_0}
+\end{equation}
+
+\begin{equation}
+\hat{\mu_k}=\frac{\sum_{i:y_i=k} x^{(i)}}{n_k}
+\end{equation}
+
+\begin{equation}
+\hat{\Sigma}_k=\frac{\sum_{i:y_i=k} (x^{(i)}-\hat{\mu}_k)(x^{(i)}-\hat{\mu}_k)^T}{n_k}
+\end{equation}
+
+The decision boundary for QDA is: Predict $Y=1$ if:
+\begin{equation}
+  ln(\frac{p}{1-p})+\frac{1}{2} ln(\frac{|\Sigma_0|}{|\Sigma_1|}) - \frac{(x-\mu_1)^T \Sigma_1^{-1} (x-\mu_1)}{2} + \frac{(x-\mu_0)^T \Sigma_0^{-1} (x-\mu_0)}{2} \geq 0
+\end{equation}
+
+
+\subsection{Naive Bayes}
+
+Naive Bayes assumes $X_1, ..., X_p$ are independent of each other. This simplifies the joint distribution of X to the product of the marginal distributions as follows:
+\begin{equation}
+f_k(x) = \prod_{j=1}^p f_{kj}(x_j)
+\end{equation}
+
+Parameter $f_k(x) = f(x|y=k)$ is the class-specific joint distribution of X, and parameter $f_{kj}(x_j)=f(x_j|y=k) \forall j=1,...,p$ is the class-specific marginal of $x_j$. Given $p_k$ is the probability that Y equals k, the posterior probability is computed as such:
+\begin{equation}
+Pr(Y=k|x) = \frac{\prod_{j=1}^p f_{kj}(x_j) p_k}{f_{\vec{x}}}
+\end{equation}
+
+The decision boundary for Naive Bayes is: Predict $Y=1$ if:
+\begin{equation}
+  ln(\frac{p_1}{p_0}) + \sum_{j=1}^{p} ln(\frac{f_{1j}(x_j)}{f_{0j}(x_j)}) \geq 0
+\end{equation}
+
+
+\subsection{Cross-Validation (CV) for model comparison}
+We divide the observations in the training data into k=5 folds of approximately equal size. We will treat the first fold as the testing set, and the remaining 4 folds as the training set. After fitting the regression model on the training set, we will use this fitted model to predict on the testing set and compute the prediction accuracy. After repeating the above process k=5 times, we compute the 5-fold CV estimate by averaging the prediction accuracy. Finally, the regression model with the highest accuracy will be chosen as the final predictive model.
+
+
+\section{Results}
+
+\subsubsection{Description of the data set}
+
+\textbf{Figure 1} represents the distribution of the numeric predictors. Notably, the distribution of clock\_speed, fc, px\_height, sc\_w appear to be right-skewed, meaning more phones have lower microprocessor speed, front camera mega pixels, pixel resolution height, and screen width.
+
+<<fig1, echo=FALSE, fig=TRUE, width=8, height=6, warning=FALSE>>=
+library(glmnet)
+library(dplyr)
+library(ggplot2)
+library(gridExtra)
+
+phone_data <- read.csv('phone_train.csv')
+
+numeric_vars <- c("battery_power","clock_speed","fc", "int_memory","m_dep","mobile_wt","pc","px_height","px_width","ram","sc_h","sc_w","talk_time")
+
+par(mfrow=c(4,4)) 
+for(var in numeric_vars) {
+  hist(phone_data[[var]], main=var, xlab=var, breaks=20)
+}
+@
+
+\begin{center}
+\textbf{Figure 1: Histogram of each numeric variable}
+\end{center}
+
+From \textbf{figure 2}, higher price ranges appear to be potentially associated with higher battery\_power, px\_width, and ram. It also appears that the association between ram and price range is the most visually discernible and possibly the strongest. For clock\_speed, fc, and sc\_h, the median is pretty similar across different price ranges, and there is no discernible pattern in the distribution, so we may consider removing these variables from the fitted model to see if that would help improve the prediction accuracy.     
+
+<<fig2, echo=FALSE, fig=TRUE, width=8, height=8>>=
+par(mfrow=c(3,5))
+for(var in numeric_vars) {
+  boxplot(phone_data[[var]] ~ phone_data$price_range, main=var, xlab="Price Range", ylab=var, col="green")
+}
+@
+
+\begin{center}
+\textbf{Figure 2: Boxplot of price range for each numeric variable}
+\end{center}
+
+From \textbf{figure 3}, it seems there may be slighter greater proportions of higher price ranges for phones with touchscreen, although the trends for other binary predictors do not seem to display any discernible patterns. We may also consider removing these discrete variables altogether before fitting our regression models to see if that would help improve the prediction accuracy.    
+
+<<fig3, echo=FALSE, fig=TRUE, width=8, height=6>>=
+par(mfrow=c(1,1))
+plot1 <- ggplot(phone_data, aes(x=factor(blue), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="Bluetooth", y="Count", fill="Price range")
+
+plot2 <- ggplot(phone_data, aes(x=factor(dual_sim), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="Dual SIM", y="Count", fill="Price range")
+
+plot3 <- ggplot(phone_data, aes(x=factor(four_g), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="4G", y="Count", fill="Price range")
+
+plot4 <- ggplot(phone_data, aes(x=factor(n_cores), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="Processor Cores", y="Count", fill="Price range")
+
+plot5 <- ggplot(phone_data, aes(x=factor(three_g), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="3G", y="Count", fill="Price range")
+
+plot6 <- ggplot(phone_data, aes(x=factor(touch_screen), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="Touch Screen", y="Count", fill="Price range")
+
+plot7 <- ggplot(phone_data, aes(x=factor(wifi), fill=factor(price_range))) +
+  geom_bar(position="fill") +
+  labs(x="Wifi", y="Count", fill="Price range")
+grid.arrange(plot1, plot2, plot3, plot4, plot5, plot6, plot7, ncol = 4)
+@
+
+\begin{center}
+\textbf{Figure 3: Barplot of price range for each categorical variables}
+\end{center}
+
+\subsubsection{Data pre-processing}
+The provided datasets do not have any missing values, thus requiring no data pre-processing to fit the regression models on the original dataset. However, initial examination of the data reveals certain variables that do not seem to display any discernible pattern, which we may consider removing from our final model to potentially improve prediction accuracy. So initially we will fit the regression models on the whole dataset. Then we will fit the regression models on the dataset with particular numeric variables removed; with all discrete variables removed; and with those numeric variables and discrete variables removed altogether before comparing the prediction accuracy we get from each of the four approaches.
+
+\subsubsection{Model comparison}
+For each of the regression models, we use 5-fold cross validation to compute its predictive accuracy. After repeating 5 times the process of fitting each model on 4 folds and testing on the remaining fold, we average the obtained accuracies to get their CV estimates. The model with the highest accuracy error out of the models will be chosen to predict the price range in the test set. \textbf{Figure 4} shows the accuracy of each model. MeanAccuracy is the accuracy of the models fitted on the original dataset. MeanAccuracy1 is the accuracy of the models fitted on the dataset after removing certain numeric variables. MeanAccuracy2 is the accuracy after removing all discrete variables. MeanAccuracy3 is the accuracy after removing certain numeric variables and all the discrete variables. The highest resulting accuracy is MeanAccuracy3 of Multinomial, so we will fit a Multinomial Regression Model on the dataset excluding numric predictors clock\_speed, fc, sc\_h and all discrete predictors.
+
+<<echo=FALSE, message=FALSE, results=hide, warning=FALSE>>=
+library(nnet)
+library(e1071)
+library(MASS)
+library(dplyr)
+
+set.seed(1)
+phone_data <- read.csv('phone_train.csv')
+phone_data$price_range <- factor(phone_data$price_range)
+
+fold.size <- floor(nrow(phone_data)/5)
+folds <- seq(1, nrow(phone_data), by=fold.size-1)
+phone_randomized <- sample(1:nrow(phone_data), nrow(phone_data))
+
+multinom.accs <- rep(NA,5)
+lda.accs <- rep(NA,5)
+qda.accs <- rep(NA,5)
+nb.accs <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data[test.idx,]
+  train <- phone_data[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc <- mean(multinom.accs)
+lda.acc <- mean(lda.accs)
+qda.acc <- mean(qda.accs)
+nb.acc <- mean(qda.accs)
+
+######
+
+phone_data1 <- phone_data %>% 
+  subset(select = -c(clock_speed, fc, sc_h))
+multinom.accs1 <- rep(NA,5)
+lda.accs1 <- rep(NA,5)
+qda.accs1 <- rep(NA,5)
+nb.accs1 <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data1[test.idx,]
+  train <- phone_data1[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs1[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs1[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs1[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs1[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc1 <- mean(multinom.accs1)
+lda.acc1 <- mean(lda.accs1)
+qda.acc1 <- mean(qda.accs1)
+nb.acc1 <- mean(qda.accs1)
+
+######
+phone_data2 <- phone_data %>% 
+  subset(select = -c(blue, dual_sim, four_g, n_cores, three_g, touch_screen, wifi))
+multinom.accs2 <- rep(NA,5)
+lda.accs2 <- rep(NA,5)
+qda.accs2 <- rep(NA,5)
+nb.accs2 <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data2[test.idx,]
+  train <- phone_data2[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs2[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs2[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs2[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs2[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc2 <- mean(multinom.accs2)
+lda.acc2 <- mean(lda.accs2)
+qda.acc2 <- mean(qda.accs2)
+nb.acc2 <- mean(qda.accs2)
+
+######
+phone_data3 <- phone_data %>% 
+  subset(select = -c(clock_speed, fc, sc_h, blue, dual_sim, four_g, n_cores, three_g, touch_screen, wifi))
+multinom.accs3 <- rep(NA,5)
+lda.accs3 <- rep(NA,5)
+qda.accs3 <- rep(NA,5)
+nb.accs3 <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data3[test.idx,]
+  train <- phone_data3[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs3[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs3[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs3[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs3[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc3 <- mean(multinom.accs3)
+lda.acc3 <- mean(lda.accs3)
+qda.acc3 <- mean(qda.accs3)
+nb.acc3 <- mean(nb.accs3)
+
+cv.table <- data.frame(
+  Model = c("Multinomial","LDA", "QDA", "Naive Bayes"),
+  MeanAccuracy = c(multinom.acc, lda.acc, qda.acc, nb.acc),
+  MeanAccuracy1 = c(multinom.acc1, lda.acc1, qda.acc1, nb.acc1),
+  MeanAccuracy2 = c(multinom.acc2, lda.acc2, qda.acc2, nb.acc2),
+  MeanAccuracy3 = c(multinom.acc3, lda.acc3, qda.acc3, nb.acc3)
+)
+@
+
+<<echo=FALSE>>=
+cv.table
+@
+
+\begin{center}
+\textbf{Figure 4: Table of fitted model accuracies}
+\end{center}
+
+\subsubsection{Final model: Mutinomial Logistic Regression}
+We fit the Multinomial Logistic Regression model on the entire training data, excluding predictors clock\_speed, fc, and sc\_h. Then we use the fitted Multinomial Logistic Regression model to predict the price range of phones in the test set. \textbf{Figure 5} shows the coefficients of the 10 predictors for 3 levels of the response. Predictors with negative coefficients across all 3 levels include mobile weight, primary camera mega pixels, and screen width. Predictors with positive coefficients include battery power, mobile depth, pixel height, pixel width, and ram. 
+
+<<echo=FALSE, message=FALSE, results=hide, warning=FALSE>>=
+library(tidyverse)
+phone_test <- read.csv('phone_test_X.csv')
+phone_test_3 <- phone_test %>% 
+  subset(select = -c(clock_speed, fc, sc_h, blue, dual_sim, four_g, n_cores, three_g, touch_screen, wifi))
+
+multinom.fit <- multinom(price_range ~ ., data = phone_data3, maxit=5000)
+multinom.coef <- coef(multinom.fit)
+@
+
+<<echo=FALSE>>=
+multinom.coef[,-1]
+@
+
+\begin{center}
+\textbf{Figure 5: Table of predictors and coefficients}
+\end{center}
+
+\textbf{Figure 6} below represents the significance of each predictor in predicting the response variable price\_range for 3 different response levels. Predictor ram has a large positive coefficient for Level 3, suggesting that as ram increases, the likelihood of the price range being in Level 3 increases significantly compared to the baseline level. Pixel width, pixel height, internal memory, and battery power also have larger positive coefficients for Level 3, suggesting that as these features increase, a phone is more likely to be placed in price range 3 compared to the baseline price range On the other hand, mobile weight has the strongest negative coefficient for Level 3, suggesting that as mobile weight increases, a phone is less likely to be placed in higher price ranges compared to the baseline range. 
+
+<<echo=FALSE, fig=TRUE, message=FALSE, results=hide, warning=FALSE>>=
+coef.df <- as.data.frame(t(multinom.coef[,-1]))
+names(coef.df) <- c("Level1", "Level2", "Level3")
+coef.df$Predictor <- rownames(coef.df)
+coef.long <- coef.df %>%pivot_longer(cols = c("Level1", "Level2", "Level3"), names_to = "ResponseLevel", values_to = "Coefficient")
+
+ggplot(coef.long, aes(x = Predictor, y = Coefficient, fill = ResponseLevel)) +
+  geom_bar(stat = "identity", position = position_dodge()) +
+  geom_hline(yintercept = 0, color = "red", linetype = "dashed") +
+  coord_flip() +
+  labs(x = "Predictor", y = "Coefficient")
+@
+
+\begin{center}
+\textbf{Figure 6: Estimates of regression coefficient}
+\end{center}
+
+\section{Discussion}
+
+\subsubsection*{Recap}
+The final model we use to predict the price range is a Multinomial Logistic Regression model fitted on the dataset with numeric predictors clock\_speed, fc, sc\_h and all discrete predictors removed. The model is chosen after comparing with LDA, QDA, and Naive Bayes for its predictive accuracy. The coefficients for battery power, pixel height, pixel width, internal memory, and ram are positive and increase across categories 1, 2, and 3, suggesting that higher values of these variables are more associated with higher price ranges, whereas mobile weight has negative coefficients that decrease across categories, suggesting that higher values of these variables mean a phone is less likely to be placed in higher price ranges.
+
+\subsubsection*{Meaningful Insights}
+High battery power, greater pixel height and width, and increased RAM are positively correlated with higher-priced phones, which aligns with consumer trends prioritizing long-lasting battery life, display quality and performance capabilities. The negative coefficients for mobile weight suggest preferences for lighter devices, potentially reflecting the value placed on portability in mobile phone design. These findings can guide manufacturers in balancing technical enhancements with consumer preferences to increae the desirability of their products in the competitie mobile market. 
+
+
+\subsubsection*{Model Limitations}
+Our final Multinomial Logistic Regression model has relatively good predictive accuracy, but it has some limitations that should be acknowledged. First of all, the logistic regression model assumes independence of variables, which might not be the case. For example, features like screen width and screen height, or 3G and 4G might be correlated in reality. This might cause the problem of multicollinearity, which means the linearity assumption may not hold for all predictors.
+
+\subsubsection*{Future Work}
+Future work could look into capturing non-linear relationships in the data by considering alternative modeling approaches like decision trees, random forests, support vector machines, or k-nearest neighbors regression.
+
+\section{Reference}
+\begin{enumerate}
+  \item (Textbook) An Introduction To Statistical Learning (with Applications in R)
+  \item (Lecture Slides) Lecture 14, Lecture 15, Lecture 16
+\end{enumerate}
+\clearpage
+
+\section*{Appendix. R Code}
+
+<<message=FALSE, results=hide, warning=FALSE>>=
+library(nnet)
+library(e1071)
+library(MASS)
+library(dplyr)
+library(tidyverse)
+
+set.seed(1)
+phone_data <- read.csv('phone_train.csv')
+phone_data$price_range <- factor(phone_data$price_range)
+
+fold.size <- floor(nrow(phone_data)/5)
+folds <- seq(1, nrow(phone_data), by=fold.size-1)
+phone_randomized <- sample(1:nrow(phone_data), nrow(phone_data))
+
+multinom.accs <- rep(NA,5)
+lda.accs <- rep(NA,5)
+qda.accs <- rep(NA,5)
+nb.accs <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data[test.idx,]
+  train <- phone_data[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc <- mean(multinom.accs)
+lda.acc <- mean(lda.accs)
+qda.acc <- mean(qda.accs)
+nb.acc <- mean(qda.accs)
+
+### Remove 3 numeric variables without a discernible pattern
+phone_data1 <- phone_data %>% 
+  subset(select = -c(clock_speed, fc, sc_h))
+multinom.accs1 <- rep(NA,5)
+lda.accs1 <- rep(NA,5)
+qda.accs1 <- rep(NA,5)
+nb.accs1 <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data1[test.idx,]
+  train <- phone_data1[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs1[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs1[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs1[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs1[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc1 <- mean(multinom.accs1)
+lda.acc1 <- mean(lda.accs1)
+qda.acc1 <- mean(qda.accs1)
+nb.acc1 <- mean(qda.accs1)
+
+### Remove all discrete variables
+phone_data2 <- phone_data %>% 
+  subset(select = -c(blue, dual_sim, four_g, n_cores, three_g, touch_screen, wifi))
+multinom.accs2 <- rep(NA,5)
+lda.accs2 <- rep(NA,5)
+qda.accs2 <- rep(NA,5)
+nb.accs2 <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data2[test.idx,]
+  train <- phone_data2[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs2[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs2[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs2[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs2[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc2 <- mean(multinom.accs2)
+lda.acc2 <- mean(lda.accs2)
+qda.acc2 <- mean(qda.accs2)
+nb.acc2 <- mean(qda.accs2)
+
+
+### Remove the 3 numeric variables and all discrete variables
+phone_data3 <- phone_data %>% 
+  subset(select = -c(clock_speed, fc, sc_h, blue, dual_sim, four_g, n_cores, three_g, touch_screen, wifi))
+multinom.accs3 <- rep(NA,5)
+lda.accs3 <- rep(NA,5)
+qda.accs3 <- rep(NA,5)
+nb.accs3 <- rep(NA,5)
+
+for (i in 1:5){
+  test.idx <- seq(from=folds[i], to=folds[i+1])
+  test.idx <- phone_randomized[test.idx]
+  train.idx <- setdiff(1:nrow(phone_data), test.idx)
+  test <- phone_data3[test.idx,]
+  train <- phone_data3[train.idx,]
+  
+  multinom.fit <- multinom(price_range ~ ., data = train, maxit=5000)
+  lda.fit <- lda(price_range ~ ., data = train)
+  qda.fit <- qda(price_range ~ ., data = train)
+  nb.fit <- naiveBayes(price_range ~ ., data = train)
+  
+  multinom.pred <- predict(multinom.fit, newdata = test, type = "class")
+  lda.pred <- predict(lda.fit, newdata = test)$class
+  qda.pred <- predict(qda.fit, newdata = test)$class
+  nb.pred <- predict(nb.fit, newdata = test)
+  
+  multinom.tab <- table(test$price_range, multinom.pred)
+  lda.tab <- table(test$price_range, lda.pred)
+  qda.tab <- table(test$price_range, qda.pred)
+  nb.tab <- table(test$price_range, nb.pred)
+
+  multinom.accs3[i]<- sum(diag(multinom.tab))/length(test$price_range) 
+  lda.accs3[i]<- sum(diag(lda.tab))/length(test$price_range) 
+  qda.accs3[i]<- sum(diag(qda.tab))/length(test$price_range) 
+  nb.accs3[i]<- sum(diag(nb.tab))/length(test$price_range)
+}
+multinom.acc3 <- mean(multinom.accs3)
+lda.acc3 <- mean(lda.accs3)
+qda.acc3 <- mean(qda.accs3)
+nb.acc3 <- mean(nb.accs3)
+@
+
+Since the altered multinomial logistic regression model has the highest accuracy, we will choose this as our prediction model. 
+
+<<message=FALSE, results=hide, warning=FALSE>>=
+phone_test <- read.csv('phone_test_X.csv')
+phone_test_3 <- phone_test %>% 
+  subset(select = -c(clock_speed, fc, sc_h, blue, dual_sim, four_g, n_cores, three_g, touch_screen, wifi))
+
+multinom.fit <- multinom(price_range ~ ., data = phone_data3, maxit=5000)
+multinom.predictions <- predict(multinom.fit, newdata = phone_test_3, type = "class")
+@
+
+<<>>=
+summary(multinom.fit)
+write.csv(multinom.predictions, file = "finalPredictions.csv")
+@
+
+\end{document}
